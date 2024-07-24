@@ -43,27 +43,20 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
 		timeReceived = time.time() 
 		recPacket, addr = mySocket.recvfrom(1024)
 
-		# Fill in Start
 		# Fetch the ICMPHeader from the IP
 		icmpHeader = recPacket[20:28]
-		type, code, checksum, packetID, sequence = struct.unpack("bbHHh", icmpHeader)
-		# If Expected Packet is received
-		if packetID == ID:
-			# Find TTL
-			ipHeader = recPacket[:20]
-			ttl = struct.unpack("!BBHHHBBHII", ipHeader)[5]
-			# Find ICMP Details
-			bytesInDouble = struct.calcsize("d")
-			timeSent = struct.unpack("d", recPacket[28:28 + bytesInDouble])[0]
-			# Build your prompt line to print
-			return 'Reply from %s: bytes=%d ttl=%d time=%.2fms'%(destAddr, bytesInDouble, ttl, (timeSent-timeReceived)*1000)
+		TTL = struct.unpack("b", recPacket[8:9])
+		icmpType, code, checksum, packetID, sequence = struct.unpack("!BBHHH", icmpHeader)
 
-		# Else:
+		if packetID == ID:
+			byte = struct.calcsize("d")
+			timeSent = struct.unpack("d", recPacket[28:28 + byte])[0]
+			return "Reply from " + destAddr + ": bytes=" + str(len(recPacket)) + " ttl="+str(TTL[0])+" time=" + str("{:8f}".format((timeReceived - timeSent)*1000))+"ms"
 		else:
-		# Fill in End 
 			timeLeft = timeLeft - howLongInSelect
 			if timeLeft <= 0:
 				return "Request timed out."
+
 
 	
 def sendOnePing(mySocket, destAddr, ID):
@@ -109,6 +102,10 @@ def ping(host, timeout=1):
 		delay = doOnePing(dest, timeout)
 		print(delay)
 		time.sleep(1)# one second
-	
-ping("google.com")
 
+# takes input from the terminal
+website = sys.argv[1]
+try:	
+	ping(website)
+except:
+	print("Invalid website/address")
